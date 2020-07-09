@@ -471,6 +471,9 @@ void handle_layer_start(void) {
     rgblight_disable_noeeprom();
     switch (layers[layers[0] + 1]) {
         case LAYER_RACE_BASE:
+            tap_code16(LGUI(KC_SPACE));
+            SEND_STRING("25005380");
+            tap_code(KC_ENT);
         case LAYER_RACE_EXTENSION:
             rgblight_enable_noeeprom();
             rgblight_sethsv_noeeprom(HSV_GREEN);

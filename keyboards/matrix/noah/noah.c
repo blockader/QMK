@@ -25,6 +25,13 @@ void rgblight_set(void) {
             led[i].g = 0;
             led[i].b = 0;
         }
+    } else {
+        for (uint8_t i = 0; i < RGBLED_NUM; i++) {
+            uint8_t t = led[i].r;
+            led[i].r = led[i].g;
+            led[i].g = led[i].b;
+            led[i].b = t;
+        }
     }
     if (noah_led_mode) {
       uint8_t ind_led = host_keyboard_leds();

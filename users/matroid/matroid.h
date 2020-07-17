@@ -25,14 +25,14 @@ bool temporary[NUMBER_OF_LAYERS] = {
 
 #define KEY_FORWARD_LAYER(a) SAFE_RANGE + a
 
-enum{
+enum {
     DANCE_PGDN_BOTTOM,
     DANCE_PGUP_TOP,
 };
 
 qk_tap_dance_action_t tap_dance_actions[] = {
     [DANCE_PGDN_BOTTOM] = ACTION_TAP_DANCE_DOUBLE(KC_PGDN, LGUI(KC_DOWN)),
-    [DANCE_PGUP_TOP] = ACTION_TAP_DANCE_DOUBLE(KC_PGUP, LGUI(KC_UP)),
+    [DANCE_PGUP_TOP]    = ACTION_TAP_DANCE_DOUBLE(KC_PGUP, LGUI(KC_UP)),
 };
 
 #define KEY_DANCE(a) TD(a)
@@ -51,10 +51,14 @@ enum custom_keycodes {
     KEY_CUT_SELECTION,
 };
 
+extern const int8_t handness[MATRIX_ROWS][MATRIX_COLS];
+
 int layers[16];
 
 struct {
-    bool back;
+    bool   back;
+    int8_t last_nonspace_handness;
+    int    last_nonspace_time, current_shift_handness, start_handness;
 } common_layer_data;
 struct {
     int operator, multiplier;
@@ -410,8 +414,9 @@ bool handle_layer_key(uint16_t key, keyrecord_t* record) {
     return true;
 }
 
-void handle_layer_start(void) {
+void handle_layer_start(uint16_t key, keyrecord_t* record) {
     rgblight_disable_noeeprom();
+    common_layer_data.start_handness = handness[record->event.key.row][record->event.key.col];
     switch (layers[layers[0] + 1]) {
         case LAYER_RACE_BASE:
             tap_code16(LGUI(KC_SPACE));
@@ -508,7 +513,7 @@ bool handle_call_key(uint16_t key, keyrecord_t* record) {
                 } else
                     layers[++layers[0] + 1] = new_layer;
                 update_layer();
-                handle_layer_start();
+                handle_layer_start(key, record);
             }
         } else {
             if (layers[layers[0] + 1] == new_layer && temporary[layers[layers[0] + 1]]) {
@@ -533,14 +538,29 @@ bool handle_call_key(uint16_t key, keyrecord_t* record) {
 
 bool handle_common_key(uint16_t key, keyrecord_t* record) {
     switch (key) {
-        case KC_0:
-            if (record->event.pressed && get_mods() & MOD_MASK_SHIFT) tap_code16(LGUI(LSFT(KC_4)));
+        case KC_GRAVE:
+            if (record->event.pressed) {
+                if (get_mods() & MOD_MASK_SHIFT)
+                    tap_code16(LGUI(LSFT(KC_4)));
+                else
+                    tap_code(KC_GRAVE);
+            }
             return false;
         case KC_1:
-            if (record->event.pressed && get_mods() & MOD_MASK_SHIFT) tap_code16(KC_AT);
+            if (record->event.pressed) {
+                if (get_mods() & MOD_MASK_SHIFT)
+                    tap_code16(KC_AT);
+                else
+                    tap_code(KC_1);
+            }
             return false;
         case KC_2:
-            if (record->event.pressed && get_mods() & MOD_MASK_SHIFT) tap_code16(KC_TILD);
+            if (record->event.pressed) {
+                if (get_mods() & MOD_MASK_SHIFT)
+                    tap_code16(KC_TILD);
+                else
+                    tap_code(KC_2);
+            }
             return false;
         case KEY_INSERT_LINE_START:
             if (record->event.pressed) tap_code16(LGUI(KC_LEFT));
@@ -611,14 +631,43 @@ bool handle_common_key(uint16_t key, keyrecord_t* record) {
     return true;
 }
 
+bool handle_handness_start(uint16_t key, keyrecord_t* record) {
+    if (key == KC_LSFT || key == KC_RSFT) {
+        if (record->event.pressed) {
+            common_layer_data.current_shift_handness = handness[record->event.key.row][record->event.key.col];
+        } else {
+            common_layer_data.current_shift_handness = 0;
+        }
+    } else {
+        if (handness[record->event.key.row][record->event.key.col] * common_layer_data.start_handness > 0) return false;
+    }
+    if (handness[record->event.key.row][record->event.key.col] * common_layer_data.start_handness > 0 && record->event.pressed && temporary[layers[layers[0] + 1]]) return false;
+    if (key != KC_SPC && record->event.pressed) {
+        common_layer_data.last_nonspace_time     = timer_read();
+        common_layer_data.last_nonspace_handness = handness[record->event.key.row][record->event.key.col];
+    }
+    return true;
+}
+
+bool handle_handness_end(uint16_t key, keyrecord_t* record) {
+    switch (key) {
+        case KC_SPC:
+            return !(handness[record->event.key.row][record->event.key.col] * common_layer_data.last_nonspace_handness > 0 && record->event.pressed && timer_elapsed(common_layer_data.last_nonspace_time) < 1000);
+    }
+    return true;
+}
+
 bool process_record_user(uint16_t key, keyrecord_t* record) {
     if (!handle_layer_key(key, record)) return false;
     if (!handle_call_key(key, record)) return false;
-    return handle_common_key(key, record);
+    if (!handle_common_key(key, record)) return false;
+    return handle_handness_end(key, record);
 }
 
 void keyboard_post_init_user() {
     rgblight_disable_noeeprom();
     rgb_matrix_disable();
-    common_layer_data.back = false;
+    common_layer_data.back          = false;
+    common_layer_data.last_nonspace_handness = 0;
+    common_layer_data.last_nonspace_time     = 0;
 }

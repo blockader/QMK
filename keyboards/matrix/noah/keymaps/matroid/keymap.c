@@ -1,6 +1,14 @@
 #include QMK_KEYBOARD_H
 #include "matroid.h"
 
+const int8_t handness[MATRIX_ROWS][MATRIX_COLS] = {
+    {-1, -1, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+    {-1, -1, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1, 1, 1, -2},
+    {-1, -1, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1, 1, 1, -2},
+    {-1, -1, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1, 1, 1, -2},
+    {-1, -1, -1, -1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+};
+
 #define PERMUTE( \
   k00, k01, k02, k03, k04, k05, k06, k07, k08, k09, k0a, k0b, k0c, k0d, k0e, k0f, \
 	k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k1a, k1b, k1c, k1d, k1e, \
@@ -12,7 +20,7 @@
     {k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k1a, k1b, k1c, k1d, KC_NO}, \
     {k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k2a, k2b, k2c, k2d, KC_NO}, \
     {k30, k31 ,k32, k33, k34, k35, k36, k37, k38, k39, k3a, k3b, k3c, k3d, KC_NO}, \
-    {k40, k41, k42, k43, k44, k45, k46, k47, k48, k49, k4a, k1e, k2e, k3e, k0f}  \
+    {k40, k41, k42, k43, k44, k45, k46, k47, k48, k49, k4a, k1e, k2e, k3e, k0f},  \
 }
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
@@ -55,7 +63,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [LAYER_CONTROL] = PERMUTE(
         KC_NO, KC_1, KC_2, KC_3, KC_4, KC_5, KC_6, KC_7, KC_8, KC_9, KC_0, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO,
         KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KEY_INSERT_LINE_START, KEY_INSERT_HERE, KEY_INSERT_LINE_END, KC_NO, KC_NO, KC_NO, KEY_CREATE_PREVIOUS_LINE, KC_NO,
-        KC_NO, LALT(KC_LEFT), LALT(KC_RIGHT), KC_BSPC, LGUI(KC_LEFT), LCTL(KC_E), KC_LEFT, KC_DOWN, KC_UP, KC_RIGHT, LGUI(KC_V), KC_NO, KC_NO, KEY_CREATE_NEXT_LINE, KC_NO,
+        KEY_BACK_LAYER, LALT(KC_LEFT), LALT(KC_RIGHT), KC_BSPC, LGUI(KC_LEFT), LCTL(KC_E), KC_LEFT, KC_DOWN, KC_UP, KC_RIGHT, LGUI(KC_V), KEY_BACK_LAYER, KC_NO, KEY_CREATE_NEXT_LINE, KC_NO,
         KEY_CUT_WORD, KC_LSFT, LGUI(KC_Z), KEY_CUT_SELECTION, LGUI(KC_C), LGUI(KC_V), KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_RSFT, KC_NO, KC_NO,
         KC_NO, KC_NO, KC_NO, KC_NO, KEY_BACK_LAYER, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO, KC_NO),
     [LAYER_WINDOW] = PERMUTE(

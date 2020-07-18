@@ -23,6 +23,21 @@ bool temporary[NUMBER_OF_LAYERS] = {
     [LAYER_DESKTOP] = false,
 };
 
+uint8_t layers[16];
+
+struct {
+    bool   back;
+    int8_t last_nonspace_handness, modifier_handness;
+    int    last_nonspace_time;
+} common_layer_data;
+struct {
+    int operator, multiplier;
+} layer_control_data;
+
+struct {
+    int start_time;
+} layer_window_data;
+
 #define KEY_FORWARD_LAYER(a) SAFE_RANGE + a
 
 enum {
@@ -52,21 +67,6 @@ enum custom_keycodes {
 };
 
 extern const int8_t handness[MATRIX_ROWS][MATRIX_COLS];
-
-int layers[16];
-
-struct {
-    bool   back;
-    int8_t last_nonspace_handness;
-    int    last_nonspace_time, current_shift_handness, start_handness;
-} common_layer_data;
-struct {
-    int operator, multiplier;
-} layer_control_data;
-
-struct {
-    int start_time;
-} layer_window_data;
 
 bool handle_layer_key(uint16_t key, keyrecord_t* record) {
     switch (layers[layers[0] + 1]) {
@@ -392,10 +392,7 @@ bool handle_layer_key(uint16_t key, keyrecord_t* record) {
             switch (key) {
                 case SAFE_RANGE + LAYER_WINDOW:
                     if (!record->event.pressed) {
-                        if (timer_elapsed(layer_window_data.start_time) < 200)
-                            temporary[LAYER_WINDOW] = true;
-                        else
-                            temporary[LAYER_WINDOW] = false;
+                        if (timer_elapsed(layer_window_data.start_time) < 200) temporary[LAYER_WINDOW] = true;
                     }
                     return true;
                 case KEY_BACK_LAYER:
@@ -416,7 +413,6 @@ bool handle_layer_key(uint16_t key, keyrecord_t* record) {
 
 void handle_layer_start(uint16_t key, keyrecord_t* record) {
     rgblight_disable_noeeprom();
-    common_layer_data.start_handness = handness[record->event.key.row][record->event.key.col];
     switch (layers[layers[0] + 1]) {
         case LAYER_RACE_BASE:
             tap_code16(LGUI(KC_SPACE));
@@ -480,6 +476,7 @@ void handle_layer_end(void) {
     switch (layers[layers[0] + 1]) {
         case LAYER_WINDOW:
             unregister_code(KC_LGUI);
+            temporary[LAYER_WINDOW] = false;
             return;
     }
 }
@@ -504,7 +501,7 @@ bool handle_call_key(uint16_t key, keyrecord_t* record) {
             return false;
     }
     if (key >= SAFE_RANGE && key < SAFE_RANGE + NUMBER_OF_LAYERS) {
-        int new_layer = key - SAFE_RANGE;
+        uint8_t new_layer = key - SAFE_RANGE;
         if (record->event.pressed) {
             if (layers[layers[0] + 1] != new_layer) {
                 if (temporary[layers[layers[0] + 1]]) {
@@ -631,33 +628,82 @@ bool handle_common_key(uint16_t key, keyrecord_t* record) {
     return true;
 }
 
+bool is_modifier(uint16_t key) {
+    switch (key) {
+        case KC_LSFT:
+        case KC_RSFT:
+        case KC_LCTL:
+        case KC_RCTL:
+        case KC_LGUI:
+        case KC_RGUI:
+        case KC_LOPT:
+        case KC_ROPT:
+            return true;
+    }
+    return false;
+}
+
 bool handle_handness_start(uint16_t key, keyrecord_t* record) {
-    if (key == KC_LSFT || key == KC_RSFT) {
-        if (record->event.pressed) {
-            common_layer_data.current_shift_handness = handness[record->event.key.row][record->event.key.col];
-        } else {
-            common_layer_data.current_shift_handness = 0;
-        }
+    if (key >= SAFE_RANGE && key < SAFE_RANGE + NUMBER_OF_LAYERS && temporary[key - SAFE_RANGE]) {
+        if (record->event.pressed)
+            common_layer_data.modifier_handness = handness[record->event.key.row][record->event.key.col];
+        else
+            common_layer_data.modifier_handness = 0;
     } else {
-        if (handness[record->event.key.row][record->event.key.col] * common_layer_data.start_handness > 0) return false;
+        if (record->event.pressed) {
+            if (handness[record->event.key.row][record->event.key.col] * common_layer_data.modifier_handness > 0) {
+                bool ignore = key == KC_BSPC;
+                if (get_mods() & MOD_MASK_GUI) {
+                    switch (key) {
+                        case KC_Z:
+                        case KC_X:
+                        case KC_C:
+                        case KC_V:
+                            ignore = true;
+                    }
+                }
+                if (get_mods() & MOD_MASK_CTRL) {
+                    switch (key) {
+                        case KC_C:
+                            ignore = true;
+                    }
+                }
+                if (!ignore) return false;
+            }
+        }
     }
-    if (handness[record->event.key.row][record->event.key.col] * common_layer_data.start_handness > 0 && record->event.pressed && temporary[layers[layers[0] + 1]]) return false;
-    if (key != KC_SPC && record->event.pressed) {
-        common_layer_data.last_nonspace_time     = timer_read();
-        common_layer_data.last_nonspace_handness = handness[record->event.key.row][record->event.key.col];
-    }
+    if (key != KC_SPC)
+        if (record->event.pressed) {
+            common_layer_data.last_nonspace_time     = timer_read();
+            common_layer_data.last_nonspace_handness = handness[record->event.key.row][record->event.key.col];
+        }
     return true;
 }
 
 bool handle_handness_end(uint16_t key, keyrecord_t* record) {
     switch (key) {
         case KC_SPC:
-            return !(handness[record->event.key.row][record->event.key.col] * common_layer_data.last_nonspace_handness > 0 && record->event.pressed && timer_elapsed(common_layer_data.last_nonspace_time) < 1000);
+            if (record->event.pressed) {
+                if (handness[record->event.key.row][record->event.key.col] * common_layer_data.last_nonspace_handness > 0 && timer_elapsed(common_layer_data.last_nonspace_time) < 1000)
+                    return false;
+                else
+                    common_layer_data.last_nonspace_handness = -handness[record->event.key.row][record->event.key.col];
+            }
+            return true;
+    }
+    if (is_modifier(key)) {
+        if (record->event.pressed) {
+            common_layer_data.modifier_handness = handness[record->event.key.row][record->event.key.col];
+        } else {
+            common_layer_data.modifier_handness = 0;
+        }
+        return true;
     }
     return true;
 }
 
 bool process_record_user(uint16_t key, keyrecord_t* record) {
+    if (!handle_handness_start(key, record)) return false;
     if (!handle_layer_key(key, record)) return false;
     if (!handle_call_key(key, record)) return false;
     if (!handle_common_key(key, record)) return false;
@@ -667,7 +713,4 @@ bool process_record_user(uint16_t key, keyrecord_t* record) {
 void keyboard_post_init_user() {
     rgblight_disable_noeeprom();
     rgb_matrix_disable();
-    common_layer_data.back          = false;
-    common_layer_data.last_nonspace_handness = 0;
-    common_layer_data.last_nonspace_time     = 0;
 }

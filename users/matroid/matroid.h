@@ -453,20 +453,20 @@ void handle_layer_return(void) {
         case LAYER_RACE_BASE:
         case LAYER_RACE_EXTENSION:
             rgblight_enable_noeeprom();
-            rgblight_sethsv_noeeprom(HSV_GREEN);
+            rgblight_sethsv_noeeprom(HSV_BLUE);
             rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT);
             return;
         case LAYER_LEGACY_BASE:
         case LAYER_LEGACY_EXTENSION:
             rgblight_enable_noeeprom();
-            rgblight_sethsv_noeeprom(HSV_RED);
+            rgblight_sethsv_noeeprom(HSV_GREEN);
             rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT);
             return;
         case LAYER_CONTROL:
             layer_control_data.operator   = - 1;
             layer_control_data.multiplier = 0;
             rgblight_enable_noeeprom();
-            rgblight_sethsv_noeeprom(HSV_BLUE);
+            rgblight_sethsv_noeeprom(HSV_RED);
             rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT);
             return;
     }

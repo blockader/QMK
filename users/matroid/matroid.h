@@ -25,10 +25,17 @@ bool temporary[NUMBER_OF_LAYERS] = {
 
 uint8_t layers[16];
 
+enum OS {
+    MACOS,
+    LINUX,
+    WINDOWS,
+};
+
 struct {
-    bool   back;
-    int8_t last_nonspace_handness, modifier_handness;
-    int    last_nonspace_time;
+    bool    ended, handness_enabled, slave;
+    int8_t  last_nonspace_handness, modifier_handness;
+    uint8_t os;
+    int     last_nonspace_time;
 } common_layer_data;
 struct {
     int operator, multiplier;
@@ -133,16 +140,16 @@ bool handle_layer_key(uint16_t key, keyrecord_t* record) {
                     }
                     return false;
                 case KEY_INSERT_LINE_START:
-                    if (record->event.pressed) common_layer_data.back = true;
+                    if (record->event.pressed) common_layer_data.ended = true;
                     return true;
                 case KEY_INSERT_HERE:
-                    if (record->event.pressed) common_layer_data.back = true;
+                    if (record->event.pressed) common_layer_data.ended = true;
                     return true;
                 case KEY_INSERT_LINE_END:
-                    if (record->event.pressed) common_layer_data.back = true;
+                    if (record->event.pressed) common_layer_data.ended = true;
                     return true;
                 case KEY_CREATE_PREVIOUS_LINE:
-                    if (record->event.pressed) common_layer_data.back = true;
+                    if (record->event.pressed) common_layer_data.ended = true;
                     return true;
                 case KEY_CUT_WORD:
                     if (record->event.pressed) {
@@ -336,7 +343,7 @@ bool handle_layer_key(uint16_t key, keyrecord_t* record) {
                     }
                     return false;
                 case KEY_CREATE_NEXT_LINE:
-                    if (record->event.pressed) common_layer_data.back = true;
+                    if (record->event.pressed) common_layer_data.ended = true;
                     return true;
                 case LGUI(KC_Z):
                     if (layer_control_data.operator== - 1 && layer_control_data.multiplier == 0) return true;
@@ -483,7 +490,7 @@ void handle_layer_end(void) {
 
 void update_layer(void) {
     layer_clear();
-    common_layer_data.back = false;
+    common_layer_data.ended = false;
     layer_on(layers[layers[0] + 1]);
 }
 
@@ -522,7 +529,7 @@ bool handle_call_key(uint16_t key, keyrecord_t* record) {
         }
         return false;
     }
-    if (common_layer_data.back) {
+    if (common_layer_data.ended) {
         if (layers[0]) {
             handle_layer_end();
             --layers[0];
@@ -628,7 +635,7 @@ bool handle_common_key(uint16_t key, keyrecord_t* record) {
     return true;
 }
 
-bool is_modifier(uint16_t key) {
+bool modifier(uint16_t key) {
     switch (key) {
         case KC_LSFT:
         case KC_RSFT:
@@ -644,6 +651,7 @@ bool is_modifier(uint16_t key) {
 }
 
 bool handle_handness_start(uint16_t key, keyrecord_t* record) {
+    if (!common_layer_data.handness_enabled) return true;
     if (key >= SAFE_RANGE && key < SAFE_RANGE + NUMBER_OF_LAYERS && temporary[key - SAFE_RANGE]) {
         if (record->event.pressed)
             common_layer_data.modifier_handness = handness[record->event.key.row][record->event.key.col];
@@ -655,6 +663,7 @@ bool handle_handness_start(uint16_t key, keyrecord_t* record) {
                 bool ignore = key == KC_BSPC;
                 if (get_mods() & MOD_MASK_GUI) {
                     switch (key) {
+                        case KC_A:
                         case KC_Z:
                         case KC_X:
                         case KC_C:
@@ -681,6 +690,7 @@ bool handle_handness_start(uint16_t key, keyrecord_t* record) {
 }
 
 bool handle_handness_end(uint16_t key, keyrecord_t* record) {
+    if (!common_layer_data.handness_enabled) return true;
     switch (key) {
         case KC_SPC:
             if (record->event.pressed) {
@@ -691,7 +701,7 @@ bool handle_handness_end(uint16_t key, keyrecord_t* record) {
             }
             return true;
     }
-    if (is_modifier(key)) {
+    if (modifier(key)) {
         if (record->event.pressed) {
             common_layer_data.modifier_handness = handness[record->event.key.row][record->event.key.col];
         } else {

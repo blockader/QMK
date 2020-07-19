@@ -1,4 +1,3 @@
-#include QMK_KEYBOARD_H
 #include "matroid.h"
 
 const int8_t handness[MATRIX_ROWS][MATRIX_COLS] = {

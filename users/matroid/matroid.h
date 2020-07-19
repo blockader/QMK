@@ -1,3 +1,6 @@
+#include QMK_KEYBOARD_H
+#include "raw_hid.h"
+
 enum {
     LAYER_NORM_BASE,
     LAYER_NORM_EXTENSION,
@@ -723,4 +726,8 @@ bool process_record_user(uint16_t key, keyrecord_t* record) {
 void keyboard_post_init_user() {
     rgblight_disable_noeeprom();
     rgb_matrix_disable();
+}
+
+void raw_hid_receive(uint8_t *data, uint8_t length) {
+    raw_hid_send(data, length);
 }

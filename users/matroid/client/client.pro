@@ -38,3 +38,10 @@ FORMS += \
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+macx: LIBS += -L$$PWD/hidapi/mac/.libs/ -lhidapi
+
+INCLUDEPATH += $$PWD/hidapi/hidapi
+DEPENDPATH += $$PWD/hidapi/hidapi
+
+macx: PRE_TARGETDEPS += $$PWD/hidapi/mac/.libs/libhidapi.a

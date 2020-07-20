@@ -76,12 +76,3 @@ __pycache__
 
 # Allow to exist but don't include it in the repo
 user_song_list.h
-
-*.app
-.qmake.stash
-Makefile
-*.pro.user
-moc_*.cpp
-moc_*.h
-ui_*.h
-ltmain.sh
